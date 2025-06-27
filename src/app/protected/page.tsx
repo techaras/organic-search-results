@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 
 import { LogoutButton } from '@/components/logout-button'
+import { InsertCsv } from '@/components/insert-csv'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function ProtectedPage() {
@@ -19,6 +20,11 @@ export default async function ProtectedPage() {
           <span>{data.user.email}</span>
         </p>
         <LogoutButton />
+      </div>
+
+      {/* CSV upload component at center top */}
+      <div className="flex justify-center pt-20">
+        <InsertCsv />
       </div>
     </div>
   )
