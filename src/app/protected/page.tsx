@@ -12,11 +12,14 @@ export default async function ProtectedPage() {
   }
 
   return (
-    <div className="flex h-svh w-full items-center justify-center gap-2">
-      <p>
-        Hello <span>{data.user.email}</span>
-      </p>
-      <LogoutButton />
+    <div className="relative h-svh w-full">
+      {/* Greeting and logout button together in top right corner */}
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <p>
+          <span>{data.user.email}</span>
+        </p>
+        <LogoutButton />
+      </div>
     </div>
   )
 }
