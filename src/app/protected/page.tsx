@@ -6,7 +6,11 @@ import { ImportsList } from '@/components/imports-list'
 import { SerperResults } from '@/components/serper-results'
 import { createClient } from '@/lib/supabase/server'
 
-export default async function ProtectedPage() {
+interface ProtectedPageProps {
+  searchParams: Promise<{ import_id?: string }>
+}
+
+export default async function ProtectedPage({ searchParams }: ProtectedPageProps) {
   const supabase = await createClient()
 
   const { data, error } = await supabase.auth.getUser()
@@ -34,7 +38,7 @@ export default async function ProtectedPage() {
 
         {/* Right column: Search results */}
         <div className="flex flex-col">
-          <SerperResults />
+          <SerperResults searchParams={searchParams} />
         </div>
       </div>
     </div>
