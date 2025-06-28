@@ -41,7 +41,7 @@ export async function ImportsList({ className }: ImportsListProps) {
   if (error) {
     console.error('Error fetching imports:', error)
     return (
-      <Card className={cn("w-full max-w-md", className)}>
+      <Card className={cn("w-full max-w-md h-full", className)}>
         <CardHeader>
           <CardTitle>Error</CardTitle>
           <CardDescription>Failed to load imports</CardDescription>
@@ -54,7 +54,7 @@ export async function ImportsList({ className }: ImportsListProps) {
 
   if (!importRecords.length) {
     return (
-      <Card className={cn("w-full max-w-md", className)}>
+      <Card className={cn("w-full max-w-md h-full", className)}>
         <CardHeader>
           <CardTitle>No Imports Yet</CardTitle>
           <CardDescription>Upload a CSV file to see your imports here</CardDescription>
@@ -64,12 +64,12 @@ export async function ImportsList({ className }: ImportsListProps) {
   }
 
   return (
-    <Card className={cn("w-full max-w-md", className)}>
-      <CardHeader>
+    <Card className={cn("w-full max-w-md flex flex-col", className)} style={{ maxHeight: 'calc(100vh - 328px)' }}>
+      <CardHeader className="flex-shrink-0">
         <CardTitle>Your Imports</CardTitle>
         <CardDescription>All your uploaded CSV files</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 overflow-auto min-h-0">
         <div className="space-y-3">
           {importRecords.map((importRecord) => (
             <div

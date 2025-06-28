@@ -98,8 +98,8 @@ export async function SerperResults({ searchParams, className, ...props }: Serpe
   const totalResults = searchResults.length
 
   return (
-    <Card className={`h-full ${className || ''}`} {...props}>
-      <CardHeader>
+    <Card className={`flex flex-col ${className || ''}`} style={{ maxHeight: 'calc(100vh - 120px)' }} {...props}>
+      <CardHeader className="flex-shrink-0">
         <div className="flex justify-start mb-6">
           <div className="flex items-center gap-2">
             <ExportCsv />
@@ -114,7 +114,7 @@ export async function SerperResults({ searchParams, className, ...props }: Serpe
           }
         </CardDescription>
       </CardHeader>
-      <CardContent className="overflow-auto">
+      <CardContent className="flex-1 overflow-auto min-h-0">
         {error ? (
           <div className="text-sm text-red-600 p-4 bg-red-50 rounded-md">
             Error: {error}
