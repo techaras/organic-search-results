@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 
 import { LogoutButton } from '@/components/logout-button'
 import { InsertCsv } from '@/components/insert-csv'
+import { SendKeywords } from '@/components/send-keywords'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function ProtectedPage() {
@@ -22,9 +23,10 @@ export default async function ProtectedPage() {
         <LogoutButton />
       </div>
 
-      {/* CSV upload component at center top */}
-      <div className="flex justify-center pt-20">
+      {/* CSV upload component and serper button at center */}
+      <div className="flex flex-col items-center pt-20 gap-4">
         <InsertCsv />
+        <SendKeywords />
       </div>
     </div>
   )
