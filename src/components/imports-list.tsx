@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { SendButton } from '@/components/send-button'
 
 interface ImportRecord {
   id: string
@@ -76,6 +77,9 @@ export async function ImportsList() {
               </div>
               <div className="text-xs text-muted-foreground">
                 {importRecord.total_keywords} keywords • {new Date(importRecord.upload_date).toLocaleDateString()}
+              </div>
+              <div className="mt-2">
+                <SendButton />
               </div>
             </div>
           ))}
