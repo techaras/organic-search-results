@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { cn } from '@/lib/utils'
 import {
   Card,
   CardContent,
@@ -16,7 +17,11 @@ interface ImportRecord {
   total_keywords: number
 }
 
-export async function ImportsList() {
+interface ImportsListProps {
+  className?: string
+}
+
+export async function ImportsList({ className }: ImportsListProps) {
   const supabase = await createClient()
   
   // Get the current user
@@ -36,7 +41,7 @@ export async function ImportsList() {
   if (error) {
     console.error('Error fetching imports:', error)
     return (
-      <Card className="w-full max-w-md">
+      <Card className={cn("w-full max-w-md", className)}>
         <CardHeader>
           <CardTitle>Error</CardTitle>
           <CardDescription>Failed to load imports</CardDescription>
@@ -49,7 +54,7 @@ export async function ImportsList() {
 
   if (!importRecords.length) {
     return (
-      <Card className="w-full max-w-md">
+      <Card className={cn("w-full max-w-md", className)}>
         <CardHeader>
           <CardTitle>No Imports Yet</CardTitle>
           <CardDescription>Upload a CSV file to see your imports here</CardDescription>
@@ -59,7 +64,7 @@ export async function ImportsList() {
   }
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className={cn("w-full max-w-md", className)}>
       <CardHeader>
         <CardTitle>Your Imports</CardTitle>
         <CardDescription>All your uploaded CSV files</CardDescription>
@@ -75,10 +80,10 @@ export async function ImportsList() {
               <div className="text-xs text-muted-foreground font-mono">
                 ID: {importRecord.id}
               </div>
-              <div className="text-xs text-muted-foreground">
-                {importRecord.total_keywords} keywords • {new Date(importRecord.upload_date).toLocaleDateString()}
-              </div>
-              <div className="mt-2">
+              <div className="flex items-center justify-between mt-1">
+                <div className="text-xs text-muted-foreground">
+                  {importRecord.total_keywords} keywords • {new Date(importRecord.upload_date).toLocaleDateString()}
+                </div>
                 <SendButton />
               </div>
             </div>
