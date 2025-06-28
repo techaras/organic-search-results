@@ -5,7 +5,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardAction,
 } from '@/components/ui/card'
 import { ResultsSwitch } from '@/components/results-switch'
 import { ExportCsv } from '@/components/export-csv'
@@ -101,6 +100,12 @@ export async function SerperResults({ searchParams, className, ...props }: Serpe
   return (
     <Card className={`h-full ${className || ''}`} {...props}>
       <CardHeader>
+        <div className="flex justify-start mb-6">
+          <div className="flex items-center gap-2">
+            <ExportCsv />
+            <ResultsSwitch />
+          </div>
+        </div>
         <CardTitle>Search Results</CardTitle>
         <CardDescription>
           {importId && importInfo 
@@ -108,12 +113,6 @@ export async function SerperResults({ searchParams, className, ...props }: Serpe
             : 'Select a file to view search results'
           }
         </CardDescription>
-        <CardAction>
-          <div className="flex items-center gap-2">
-            <ResultsSwitch />
-            <ExportCsv />
-          </div>
-        </CardAction>
       </CardHeader>
       <CardContent className="overflow-auto">
         {error ? (
