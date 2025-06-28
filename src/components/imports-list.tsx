@@ -84,7 +84,7 @@ export async function ImportsList({ className }: ImportsListProps) {
                 <div className="text-xs text-muted-foreground">
                   {importRecord.total_keywords} keywords • {new Date(importRecord.upload_date).toLocaleDateString()}
                 </div>
-                <SendButton />
+                <SendButton importId={importRecord.id} />
               </div>
             </div>
           ))}
