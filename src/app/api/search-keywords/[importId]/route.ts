@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { processKeywordSearch, ProcessedSearchResult } from '@/lib/search-results'
 
 interface KeywordRecord {
   id: string
@@ -7,13 +8,6 @@ interface KeywordRecord {
   user_id: string
   import_id: string
   file_name: string
-}
-
-interface SerperSearchParams {
-  q: string
-  gl: string
-  location: string
-  hl: string
 }
 
 export async function POST(
@@ -56,58 +50,70 @@ export async function POST(
       return NextResponse.json({ error: 'API configuration error' }, { status: 500 })
     }
 
-    // Search each keyword using Serper.dev
-    const searchResults = []
+    // Process each keyword and save results to database
+    const processedResults: ProcessedSearchResult[] = []
+    const errors: Array<{ keyword: string; error: string }> = []
     
     for (const keywordRecord of keywordRecords) {
       try {
-        const searchParams: SerperSearchParams = {
-          q: keywordRecord.keyword,
-          gl: 'gb', // United Kingdom
-          location: 'United Kingdom',
-          hl: 'en' // English
-        }
-
-        const response = await fetch('https://google.serper.dev/search', {
-          method: 'POST',
-          headers: {
-            'X-API-KEY': apiKey,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(searchParams)
-        })
-
-        if (!response.ok) {
-          console.error(`Serper API error for keyword "${keywordRecord.keyword}":`, response.status, response.statusText)
-          continue
-        }
-
-        const searchData = await response.json()
+        console.log(`Processing keyword: "${keywordRecord.keyword}"`)
         
-        searchResults.push({
-          keyword: keywordRecord.keyword,
-          keywordId: keywordRecord.id,
-          searchData
-        })
+        const result = await processKeywordSearch(
+          keywordRecord.keyword,
+          keywordRecord.id,
+          userData.user.id,
+          importId,
+          apiKey
+        )
+        
+        processedResults.push(result)
+        console.log(`✓ Saved ${result.savedResults} results for "${keywordRecord.keyword}"`)
 
-        // Add a small delay to be respectful to the API
+        // Add a small delay to be respectful to the API (300 queries/second limit)
         await new Promise(resolve => setTimeout(resolve, 100))
 
       } catch (error) {
-        console.error(`Error searching keyword "${keywordRecord.keyword}":`, error)
-        continue
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        console.error(`Error processing keyword "${keywordRecord.keyword}":`, errorMessage)
+        
+        errors.push({
+          keyword: keywordRecord.keyword,
+          error: errorMessage
+        })
       }
     }
 
+    // Calculate summary statistics
+    const totalKeywordsProcessed = processedResults.length
+    const totalResultsSaved = processedResults.reduce((sum, result) => sum + result.savedResults, 0)
+    const totalSearchResults = processedResults.reduce((sum, result) => sum + result.totalResults, 0)
+
     return NextResponse.json({
+      success: true,
       importId,
-      totalKeywords: keywordRecords.length,
-      searchResults,
-      message: `Successfully searched ${searchResults.length} out of ${keywordRecords.length} keywords`
+      summary: {
+        totalKeywords: keywordRecords.length,
+        keywordsProcessed: totalKeywordsProcessed,
+        keywordsFailed: errors.length,
+        totalSearchResults,
+        totalResultsSaved
+      },
+      processedResults: processedResults.map(result => ({
+        keyword: result.keyword,
+        keywordId: result.keywordId,
+        totalResults: result.totalResults,
+        savedResults: result.savedResults
+      })),
+      errors: errors.length > 0 ? errors : undefined,
+      message: `Successfully processed ${totalKeywordsProcessed} keywords and saved ${totalResultsSaved} search results`
     })
 
   } catch (error) {
     console.error('Search keywords API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ 
+      success: false,
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
