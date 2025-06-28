@@ -16,11 +16,28 @@ type UploadStatus = 'idle' | 'uploading' | 'success' | 'error'
 interface UploadResult {
   totalKeywords: number
   fileName: string
+  importId: string
+  uploadDate: string
 }
 
 interface CsvRow {
   Keywords: string
   [key: string]: string | number | boolean | null | undefined
+}
+
+interface ImportRecord {
+  id: string
+  user_id: string
+  file_name: string
+  upload_date: string
+  total_keywords: number
+}
+
+interface KeywordRecord {
+  file_name: string
+  keyword: string
+  user_id: string
+  import_id: string
 }
 
 export function InsertCsv({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
@@ -80,7 +97,7 @@ export function InsertCsv({ className, ...props }: React.ComponentPropsWithoutRe
         throw new Error('CSV must have a "Keywords" column')
       }
 
-      // Transform data for database
+      // Get user and setup Supabase client
       const supabase = createClient()
       const { data: userData } = await supabase.auth.getUser()
       
@@ -88,35 +105,75 @@ export function InsertCsv({ className, ...props }: React.ComponentPropsWithoutRe
         throw new Error('User not authenticated')
       }
 
-      const keywordsToInsert = (rows as CsvRow[])
-        .map((row) => ({
-          file_name: file.name,
-          keyword: row.Keywords?.toString().trim(),
-          user_id: userData.user.id
-        }))
-        .filter(item => item.keyword && item.keyword.length > 0)
+      // Validate and prepare keywords data
+      const validKeywords = (rows as CsvRow[])
+        .map((row) => row.Keywords?.toString().trim())
+        .filter(keyword => keyword && keyword.length > 0)
 
-      if (!keywordsToInsert.length) {
+      if (!validKeywords.length) {
         throw new Error('No valid keywords found in CSV')
       }
 
-      // Insert in chunks to avoid payload limits
+      console.log(`Processing ${validKeywords.length} valid keywords`)
+
+      // Step 1: Create import record to get import_id
+      const { data: importData, error: importError } = await supabase
+        .from('imports')
+        .insert({
+          user_id: userData.user.id,
+          file_name: file.name,
+          total_keywords: validKeywords.length
+        })
+        .select('*')
+        .single()
+
+      if (importError) {
+        console.error('Failed to create import record:', importError)
+        throw new Error(`Failed to create import record: ${importError.message}`)
+      }
+
+      console.log('Created import record:', importData)
+
+      const importRecord = importData as ImportRecord
+
+      // Step 2: Prepare keywords with import_id
+      const keywordsToInsert: KeywordRecord[] = validKeywords.map((keyword) => ({
+        file_name: file.name,
+        keyword: keyword,
+        user_id: userData.user.id,
+        import_id: importRecord.id
+      }))
+
+      // Step 3: Insert keywords in chunks to avoid payload limits
       const CHUNK_SIZE = 500
+      let totalInserted = 0
+
       for (let i = 0; i < keywordsToInsert.length; i += CHUNK_SIZE) {
         const chunk = keywordsToInsert.slice(i, i + CHUNK_SIZE)
-        const { error } = await supabase
+        console.log(`Inserting chunk ${Math.floor(i / CHUNK_SIZE) + 1}/${Math.ceil(keywordsToInsert.length / CHUNK_SIZE)}`)
+        
+        const { error: keywordError } = await supabase
           .from('keywords')
           .insert(chunk)
 
-        if (error) {
-          console.error('Database insertion error:', error)
-          throw new Error(`Failed to save keywords: ${error.message}`)
+        if (keywordError) {
+          console.error('Database insertion error:', keywordError)
+          // If keyword insertion fails, we should clean up the import record
+          await supabase.from('imports').delete().eq('id', importRecord.id)
+          throw new Error(`Failed to save keywords: ${keywordError.message}`)
         }
+
+        totalInserted += chunk.length
       }
 
+      console.log(`Successfully inserted ${totalInserted} keywords for import ${importRecord.id}`)
+
+      // Step 4: Set success result
       setResult({
-        totalKeywords: keywordsToInsert.length,
-        fileName: file.name
+        totalKeywords: totalInserted,
+        fileName: file.name,
+        importId: importRecord.id,
+        uploadDate: importRecord.upload_date
       })
       setStatus('success')
 
@@ -225,6 +282,14 @@ export function InsertCsv({ className, ...props }: React.ComponentPropsWithoutRe
           )}>
             {description}
           </CardDescription>
+          {status === 'success' && result && (
+            <div className="mt-4 text-left">
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div>Import ID: {result.importId}</div>
+                <div>Upload Date: {new Date(result.uploadDate).toLocaleString()}</div>
+              </div>
+            </div>
+          )}
         </CardHeader>
       </Card>
 
