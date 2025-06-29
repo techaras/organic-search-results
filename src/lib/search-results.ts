@@ -52,8 +52,15 @@ export function parseOrganicResults(
 ): SearchResultRecord[] {
   const organicResults = serperResponse.organic || []
   
+  // Log the raw data we received
+  console.log(`🔍 Parsing results for keyword: "${keyword}"`)
+  console.log(`📊 Raw organic results count: ${organicResults.length}`)
+  console.log(`📋 First few positions: ${organicResults.slice(0, 3).map(r => r.position).join(', ')}`)
+  
   // Take only first 10 results
   const firstTenResults = organicResults.slice(0, 10)
+  
+  console.log(`✂️ Taking first ${firstTenResults.length} results (max 10)`)
   
   return firstTenResults.map((result) => ({
     query: keyword,
@@ -95,6 +102,9 @@ export async function processKeywordSearch(
   importId: string,
   apiKey: string
 ): Promise<ProcessedSearchResult> {
+  console.log(`\n🚀 Starting search for keyword: "${keyword}"`)
+  console.log(`🔑 Keyword ID: ${keywordId}`)
+  
   // Search parameters for UK location
   const searchParams = {
     q: keyword,
@@ -102,6 +112,8 @@ export async function processKeywordSearch(
     location: 'United Kingdom',
     hl: 'en' // English
   }
+
+  console.log(`📡 Calling Serper API with params:`, JSON.stringify(searchParams, null, 2))
 
   // Call Serper API
   const response = await fetch('https://google.serper.dev/search', {
@@ -114,16 +126,36 @@ export async function processKeywordSearch(
   })
 
   if (!response.ok) {
+    console.error(`❌ Serper API error for keyword "${keyword}": ${response.status} ${response.statusText}`)
     throw new Error(`Serper API error for keyword "${keyword}": ${response.status} ${response.statusText}`)
   }
 
   const searchData: SerperResponse = await response.json()
   
+  console.log(`✅ Serper API response received for "${keyword}"`)
+  console.log(`📊 Total organic results in response: ${searchData.organic?.length || 0}`)
+  console.log(`🏷️ Credits used: ${searchData.credits}`)
+  
+  // Log the raw organic results array for debugging
+  if (searchData.organic && searchData.organic.length > 0) {
+    console.log(`📝 Raw organic results summary:`)
+    searchData.organic.forEach((result, index) => {
+      console.log(`   ${index + 1}. Position ${result.position}: ${result.link.substring(0, 60)}...`)
+    })
+  } else {
+    console.log(`⚠️ No organic results found in response for "${keyword}"`)
+  }
+  
   // Parse organic results
   const organicResults = parseOrganicResults(searchData, keyword, userId, importId)
   
+  console.log(`📦 Parsed ${organicResults.length} results for database insertion`)
+  
   // Save to database
   const savedResults = await saveSearchResults(organicResults)
+  
+  console.log(`💾 Successfully saved ${savedResults} results to database for "${keyword}"`)
+  console.log(`✨ Completed processing keyword: "${keyword}"\n`)
   
   return {
     keyword,
